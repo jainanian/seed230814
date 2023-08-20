@@ -1887,7 +1887,7 @@ pvppatent_filter <- pvppatent_combine%>%
       case_when(
         
         grepl(
-          "A01H6", cpc_subgroup_id, ignore.case = TRUE,
+          "A01H6|A01H5", cpc_subgroup_id, ignore.case = TRUE,
           perl = TRUE
         ) ~  1,
         TRUE ~ 0
@@ -1900,6 +1900,7 @@ pvppatent_filter <- pvppatent_combine%>%
     patent_number
   )
 
+#this includes unknowns
 pvppatent_all <-pvppatent_combine%>% 
   # f(
   #   patent_type_orig 
@@ -1922,7 +1923,7 @@ pvppatent_all <-pvppatent_combine%>%
       case_when(
         
         grepl(
-          "A01H6", cpc_subgroup_id, ignore.case = TRUE,
+          "A01H6|A01H5", cpc_subgroup_id, ignore.case = TRUE,
           perl = TRUE
         ) ~  1,
         TRUE ~ 0
@@ -2283,6 +2284,36 @@ writexl::write_xlsx(
 downloadpatentspdffunc(dlpatents_df = pvppatent_combine_url_sample5, dlpatents_outputfolder = "//jna_nol/asus/msi/work/farmer welfare/seed/R analysis/download patents pvps/230720 sample 10" , dlpatentsnumworker = 90)
 ```
 
+# Standardize company names
+```{r }
+luconames_base <- readxl::read_excel(
+    "230707 rename Lu seed cos.xlsx"
+)
+fread2 <- function(x){
+  data.table::fread(x, colClasses = 'character', data.table = FALSE  )
+  
+}
+patent_pvp_combine <-  tibble(
+   
+   filename = list.files(
+        "~/seed230814/pvp patent combine",
+        pattern = "csv",
+        full.names = TRUE
+
+      ) 
+   )%>%
+    mutate(
+      dfcall = 
+      purrr::map(filename, ~possibly(~fread2(.x),otherwise=NA)(.x)) 
+    ) %>% 
+    unnest()
+
+#only those most that are for sure AOH1
+patent_pvp_combine_filter <- patent_pvp_combine %>% 
+  filter(
+    (valueuse_ifcpc_A01H6 == 1)|(patent_type_orig == "PVP")
+  ) 
+```
 
 # merger inclusion
 
@@ -2327,7 +2358,7 @@ lu_conames_out230705_match <- readxl::read_excel(
 ```{r }
 
 
-lu_conames_out230705  <- patent_pvp_combine_230705 %>% 
+lu_conames_out230705  <- patent_pvp_combine  %>% 
   select(
     Applicant,patent_type, patent_number, patent_year, crop
   ) %>% 
